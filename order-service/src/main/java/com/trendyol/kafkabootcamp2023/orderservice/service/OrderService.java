@@ -2,6 +2,9 @@ package com.trendyol.kafkabootcamp2023.orderservice.service;
 
 import com.trendyol.kafkabootcamp2023.orderservice.domain.Order;
 import com.trendyol.kafkabootcamp2023.orderservice.messaging.message.OrderCreatedMessage;
+import com.trendyol.kafkabootcamp2023.orderservice.messaging.message.OrderDeliveredMessage;
+import com.trendyol.kafkabootcamp2023.orderservice.messaging.producer.delivered.OrderDeliveredProducer;
+import com.trendyol.kafkabootcamp2023.orderservice.model.OrderStatus;
 import com.trendyol.kafkabootcamp2023.orderservice.model.request.OrderCreateRequest;
 import com.trendyol.kafkabootcamp2023.orderservice.model.request.OrderStatusUpdateRequest;
 import com.trendyol.kafkabootcamp2023.orderservice.model.response.OrderResponse;
@@ -11,6 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class OrderService {
 
@@ -18,10 +23,12 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderCreatedProducer orderCreatedProducer;
+    private final OrderDeliveredProducer orderDeliveredProducer;
 
-    public OrderService(OrderRepository orderRepository, OrderCreatedProducer orderCreatedProducer) {
+    public OrderService(OrderRepository orderRepository, OrderCreatedProducer orderCreatedProducer, OrderDeliveredProducer orderDeliveredProducer) {
         this.orderRepository = orderRepository;
         this.orderCreatedProducer = orderCreatedProducer;
+        this.orderDeliveredProducer = orderDeliveredProducer;
     }
 
     public OrderResponse createOrder(OrderCreateRequest orderCreateRequest) {
@@ -37,6 +44,15 @@ public class OrderService {
     public OrderResponse updateOrderStatus(OrderStatusUpdateRequest request) {
        //TODO:: update order status and if status is delivered produce orderDeliveredEvent.
        //TODO:: Afterwards create payment by calling PaymentService after consuming orderDeliveredEvent
-        return null;
+        Optional<Order> order = orderRepository.findById(request.getOrderId());
+        if(order.isPresent()){
+            order.get().setOrderStatus(request.getOrderStatus());
+            orderRepository.save(order.get());
+            if(OrderStatus.DELIVERED.equals(request.getOrderStatus())){
+                orderDeliveredProducer.produce(new OrderDeliveredMessage(order.get()));
+            }
+            return new OrderResponse(order.get());
+        }
+        return null; //TODO error handling
     }
 }
