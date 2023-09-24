@@ -1,0 +1,114 @@
+spring:
+  application:
+    name: kafkabootcamp2023-orderservice
+    description: kafkabootcamp2023-orderservice
+  profiles:
+    active: test
+  liquibase:
+    enabled: false
+  datasource:
+    name: bootcamp-2023
+    password: bootcamp_2023_apppswd
+    type: com.zaxxer.hikari.HikariDataSource
+    url: "jdbc:h2:mem:bootcamp-2023;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false;MODE=PostgreSQL"
+    username: bootcamp_2023_appuser
+    hikari:
+      auto-commit: false
+      pool-name: bootcamp-2023-default-db-pool
+      maximum-pool-size: 50
+      minimum-idle: 3
+      connection-timeout: 10000
+      max-lifetime: 60000
+  jpa:
+    database: POSTGRESQL
+    database-platform: org.hibernate.dialect.PostgreSQL94Dialect
+    show-sql: true
+    hibernate:
+      ddl-auto: create-drop
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  kafka:
+    producer:
+      configs:
+        bootstrap-servers: localhost:29092
+        batch-size: 16384
+        acks: "1"
+        request-timeout-ms: 30000
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      order:
+        created:
+          topic: public.kafka-bootcamp-2023.order-service.order-created
+        delivered:
+          topic: public.kafka-bootcamp-2023.order-service.order-delivered
+    consumer:
+      order:
+        created:
+          bootstrap-servers: localhost:29092
+          group-id: order-service
+          topic: order.created
+          auto-offset-reset: earliest
+          enabled: true
+          max-poll-records: 500
+          max-poll-interval: 300000
+          request-timeout: 30000
+          session-timeout: 10000
+          retry:
+            bootstrap-servers: localhost:29092
+            group-id: order-service
+            topic: order-service.order.created.RETRY
+            auto-offset-reset: earliest
+            enabled: true
+            retry-count: 3
+            retry-interval: 1000
+            max-poll-records: 500
+            max-poll-interval: 300000
+            request-timeout: 30000
+            session-timeout: 10000
+          error:
+            bootstrap-servers: localhost:29092
+            group-id: order-service
+            topic: order-service.order.created.ERROR
+            auto-offset-reset: earliest
+            enabled: false
+            max-poll-records: 500
+            max-poll-interval: 300000
+            request-timeout: 30000
+            session-timeout: 10000
+        delivered:
+          bootstrap-servers: localhost:29092
+          group-id: payment-service
+          topic: order.delivered
+          auto-offset-reset: earliest
+          enabled: true
+          max-poll-records: 500
+          max-poll-interval: 300000
+          request-timeout: 30000
+          session-timeout: 10000
+          retry:
+            bootstrap-servers: localhost:29092
+            group-id: payment-service
+            topic: order-service.order.delivered.RETRY
+            auto-offset-reset: earliest
+            enabled: true
+            retry-count: 3
+            retry-interval: 1000
+            max-poll-records: 500
+            max-poll-interval: 300000
+            request-timeout: 30000
+            session-timeout: 10000
+          error:
+            bootstrap-servers: localhost:29092
+            group-id: payment-service
+            topic: order-service.order.delivered.ERROR
+            auto-offset-reset: earliest
+            enabled: false
+            max-poll-records: 500
+            max-poll-interval: 300000
+            request-timeout: 30000
+            session-timeout: 10000
+server:
+  port: 8080
+
+

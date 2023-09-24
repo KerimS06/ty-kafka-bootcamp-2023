@@ -1,0 +1,143 @@
+spring:
+  application:
+    name: @project.name@
+    description: @project.description@
+  profiles:
+    active: local
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
+  datasource:
+    url: jdbc:postgresql://localhost:5432/order?reWriteBatchedInserts=true
+    driver-class-name: org.postgresql.Driver
+    datasource-class-name: org.postgresql.ds.PGSimpleDataSource
+    username: order_db_appuser
+    password: order_db_apppswd
+    hikari:
+      pool-name: order-db-default-db-pool
+      auto-commit: true
+      maximum-pool-size: 50
+      minimum-idle: 3
+      connectionTimeout: 10000
+      idle-timeout: 60000
+  jpa:
+    properties:
+      javax.persistence.query.timeout: 30000
+      hibernate:
+        show-sql: true
+        ddl-auto: none
+        jdbc:
+          batch_size: 50
+        generate_statistics: false
+        order_inserts: true #Optimize Batch Inserts of Parent-Child Relationships And Batch Per Transaction
+        order_updates: true #Optimize Batch Updates of Parent-Child Relationships And Batch Per Transaction
+        dialect: org.hibernate.dialect.PostgreSQL10Dialect
+        #if you are using resource-local transactions (which is quite the norm when using Spring framework), you should definitely configure the connection pool (e.g. HikariCP) to disable the auto-commit commit, and provide the connection acquisition delay Hibernate configuration property
+        connection.provider_disables_autocommit: false
+        package_to_scan: com.trendyol.mpc.sellerpayscargoinvoiceconsumer.domain
+        use-second-level-cache: false
+        current_session_context_class: org.springframework.orm.hibernate5.SpringSessionContext
+        enable_lazy_load_no_trans: true
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  kafka:
+    producer:
+      configs:
+        bootstrap-servers: localhost:29092
+        batch-size: 16384
+        acks: "1"
+        request-timeout-ms: 30000
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      order:
+        created:
+          topic: order.created
+        delivered:
+          topic: order.delivered
+    consumer:
+      order:
+        created:
+          bootstrap-servers: localhost:29092
+          group-id: order-service
+          topic: order.created
+          auto-offset-reset: earliest
+          enabled: true
+          max-poll-records: 500
+          max-poll-interval: 300000
+          request-timeout: 30000
+          session-timeout: 10000
+          retry:
+            bootstrap-servers: localhost:29092
+            group-id: order-service
+            topic: order-service.order.created.RETRY
+            auto-offset-reset: earliest
+            enabled: true
+            retry-count: 3
+            retry-interval: 1000
+            max-poll-records: 500
+            max-poll-interval: 300000
+            request-timeout: 30000
+            session-timeout: 10000
+          error:
+            bootstrap-servers: localhost:29092
+            group-id: order-service
+            topic: order-service.order.created.ERROR
+            auto-offset-reset: earliest
+            enabled: false
+            max-poll-records: 500
+            max-poll-interval: 300000
+            request-timeout: 30000
+            session-timeout: 10000
+        delivered:
+          bootstrap-servers: localhost:29092
+          group-id: payment-service
+          topic: order.delivered
+          auto-offset-reset: earliest
+          enabled: true
+          max-poll-records: 500
+          max-poll-interval: 300000
+          request-timeout: 30000
+          session-timeout: 10000
+          retry:
+            bootstrap-servers: localhost:29092
+            group-id: payment-service
+            topic: order-service.order.delivered.RETRY
+            auto-offset-reset: earliest
+            enabled: true
+            retry-count: 3
+            retry-interval: 1000
+            max-poll-records: 500
+            max-poll-interval: 300000
+            request-timeout: 30000
+            session-timeout: 10000
+          error:
+            bootstrap-servers: localhost:29092
+            group-id: payment-service
+            topic: order-service.order.delivered.ERROR
+            auto-offset-reset: earliest
+            enabled: false
+            max-poll-records: 500
+            max-poll-interval: 300000
+            request-timeout: 30000
+            session-timeout: 10000
+
+server:
+  port: 8080
+
+logging:
+  pattern:
+    console: "{\"time\": \"%d\", \"level\": \"%p\", \"agent-name\": \"%X{x-agent-name}\", \"correlation-id\": \"%X{x-correlationId}\", \"executor-user\": \"%X{x-executor-user}\", \"remote-host\": \"%X{x-remote-host}\", \"source\": \"%logger{63}:%L\", \"message\": \"%replace(%m%wEx{6}){'[\r\n]+', '\\n'}%nopex\"}%n"
+  level:
+    ROOT: INFO
+    org.springframework: ERROR
+    org.hibernate: ERROR
+    org.apache.http: ERROR
+    org.apache.commons: ERROR
+    org.apache.tomcat: ERROR
+    org.postgresql: WARN
+    org.springframework.kafka: ERROR
+    org.apache.kafka: INFO
+    com.zaxxer.hikari: ERROR
+    com.trendyol: INFO
+    io.hypersistence.optimizer: ERROR

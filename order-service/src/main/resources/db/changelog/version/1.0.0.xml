@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+
+    <changeSet id="2023-09-12 12:00" author="kerim.abdullah">
+        <sql>
+            CREATE TABLE orders (
+            id INT8 NOT NULL,
+            order_date TIMESTAMP NOT NULL,
+            seller_id INT8 NOT NULL,
+            customer_id INT8 NOT NULL,
+            order_type VARCHAR(30) NOT NULL,
+            order_status VARCHAR(30) NOT NULL,
+            order_amount NUMERIC(19,2) NOT NULL,
+            created_date TIMESTAMP NOT NULL,
+            last_modified_date TIMESTAMP NOT NULL
+            );
+
+            CREATE SEQUENCE seq_orders START 1 INCREMENT 50;
+
+            ALTER TABLE orders REPLICA IDENTITY FULL;
+        </sql>
+
+
+        <sql>
+            CREATE TABLE payments (
+                                    id INT8 NOT NULL,
+                                    payment_date TIMESTAMP NOT NULL,
+                                    seller_id INT8 NOT NULL,
+                                    amount NUMERIC(19,2) NOT NULL,
+                                    created_date TIMESTAMP NOT NULL,
+                                    last_modified_date TIMESTAMP NOT NULL
+            );
+
+            CREATE SEQUENCE seq_payments START 1 INCREMENT 50;
+
+            ALTER TABLE payments REPLICA IDENTITY FULL;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

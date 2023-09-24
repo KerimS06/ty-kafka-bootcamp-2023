@@ -1,0 +1,84 @@
+version: '3.1'
+services:
+  order-db:
+    image: postgres:11.1-alpine
+    environment:
+      POSTGRES_USER: order_db_appuser
+      POSTGRES_PASSWORD: order_db_apppswd
+      POSTGRES_DB: order
+    ports:
+      - "5432:5432"
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+    container_name: order-db
+    networks:
+      - bootcamp-net
+
+  zookeeper-server:
+    image: bitnami/zookeeper:latest
+    restart: unless-stopped
+    networks:
+      - bootcamp-net
+    container_name: zookeeper-server
+    hostname: zookeeper-server
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    volumes:
+      - ./zookeeper-server:/bitnami/zookeeper
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: bitnami/kafka:2.3.0
+    container_name: kafka
+    restart: unless-stopped
+    environment:
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper-server:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ADVERTISED_HOST_NAME=localhost
+      - KAFKA_DELETE_TOPIC_ENABLE=true
+      - KAFKA_DEFAULT_REPLICATION_FACTOR=1
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_NUM_PARTITIONS=2
+      - KAFKA_PORT_NUMBER=9092
+      - KAFKA_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://:29092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    networks:
+      - bootcamp-net
+    depends_on:
+      - zookeeper-server
+    volumes:
+      - ./kafka:/bitnami/kafka
+
+  akhq:
+    image: tchiotludo/akhq
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            docker-kafka-server:
+              properties:
+                bootstrap.servers: "kafka:9092"
+              connect:
+                - name: "debezium"
+                  url: "http://debezium:8083"
+    ports:
+      - 8090:8080
+    links:
+      - kafka
+    networks:
+      - bootcamp-net
+
+networks:
+  bootcamp-net:
+    driver: bridge
+
+volumes:
+  order-db:

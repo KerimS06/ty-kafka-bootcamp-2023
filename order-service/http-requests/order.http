@@ -1,0 +1,19 @@
+###
+POST http://localhost:8080/orders/create
+Content-Type: application/json
+
+{
+  "sellerId": 10,
+  "customerId": 123,
+  "orderAmount": 150,
+  "orderType": "CORE"
+}
+
+###
+PUT http://localhost:8080/orders/update
+Content-Type: application/json
+
+{
+  "orderId" : 1,
+  "orderStatus": "DELIVERED"
+}
