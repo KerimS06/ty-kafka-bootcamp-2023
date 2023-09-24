@@ -2,6 +2,9 @@ package com.trendyol.kafkabootcamp2023.orderservice.service;
 
 import com.trendyol.kafkabootcamp2023.orderservice.domain.Order;
 import com.trendyol.kafkabootcamp2023.orderservice.messaging.message.OrderCreatedMessage;
+import com.trendyol.kafkabootcamp2023.orderservice.messaging.message.OrderDeliveredMessage;
+import com.trendyol.kafkabootcamp2023.orderservice.messaging.producer.updated.OrderDeliveredProducer;
+import com.trendyol.kafkabootcamp2023.orderservice.model.OrderStatus;
 import com.trendyol.kafkabootcamp2023.orderservice.model.request.OrderCreateRequest;
 import com.trendyol.kafkabootcamp2023.orderservice.model.request.OrderStatusUpdateRequest;
 import com.trendyol.kafkabootcamp2023.orderservice.model.response.OrderResponse;
@@ -18,10 +21,12 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderCreatedProducer orderCreatedProducer;
+    private final OrderDeliveredProducer orderDeliveredProducer;
 
-    public OrderService(OrderRepository orderRepository, OrderCreatedProducer orderCreatedProducer) {
+    public OrderService(OrderRepository orderRepository, OrderCreatedProducer orderCreatedProducer, OrderDeliveredProducer orderDeliveredProducer) {
         this.orderRepository = orderRepository;
         this.orderCreatedProducer = orderCreatedProducer;
+        this.orderDeliveredProducer = orderDeliveredProducer;
     }
 
     public OrderResponse createOrder(OrderCreateRequest orderCreateRequest) {
@@ -37,6 +42,21 @@ public class OrderService {
     public OrderResponse updateOrderStatus(OrderStatusUpdateRequest request) {
        //TODO:: update order status and if status is delivered produce orderDeliveredEvent.
        //TODO:: Afterwards create payment by calling PaymentService after consuming orderDeliveredEvent
+        //Get order from Repo
+        Order order = orderRepository.findById(request.getOrderId()).orElseThrow();
+        //Update order status
+        order.setOrderStatus(request.getOrderStatus());
+        //Save order to Repo
+        orderRepository.save(order);
+
+        //Produce orderDeliveredEvent
+        if(order.getOrderStatus().equals(OrderStatus.DELIVERED)){
+            orderDeliveredProducer.produce(new OrderDeliveredMessage(order));
+        }
+
+
+
+
         return null;
     }
 }
