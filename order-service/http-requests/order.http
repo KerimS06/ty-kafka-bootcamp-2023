@@ -4,7 +4,7 @@ Content-Type: application/json
 
 {
   "sellerId": 10,
-  "customerId": 123,
+  "customerId": 124,
   "orderAmount": 150,
   "orderType": "CORE"
 }
