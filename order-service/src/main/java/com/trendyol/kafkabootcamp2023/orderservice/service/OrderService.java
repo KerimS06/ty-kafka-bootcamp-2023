@@ -2,6 +2,9 @@ package com.trendyol.kafkabootcamp2023.orderservice.service;
 
 import com.trendyol.kafkabootcamp2023.orderservice.domain.Order;
 import com.trendyol.kafkabootcamp2023.orderservice.messaging.message.OrderCreatedMessage;
+import com.trendyol.kafkabootcamp2023.orderservice.messaging.message.OrderDeliveredMessage;
+import com.trendyol.kafkabootcamp2023.orderservice.messaging.producer.delivered.OrderDeliveredProducer;
+import com.trendyol.kafkabootcamp2023.orderservice.model.OrderStatus;
 import com.trendyol.kafkabootcamp2023.orderservice.model.request.OrderCreateRequest;
 import com.trendyol.kafkabootcamp2023.orderservice.model.request.OrderStatusUpdateRequest;
 import com.trendyol.kafkabootcamp2023.orderservice.model.response.OrderResponse;
@@ -19,9 +22,13 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderCreatedProducer orderCreatedProducer;
 
-    public OrderService(OrderRepository orderRepository, OrderCreatedProducer orderCreatedProducer) {
+    private final OrderDeliveredProducer orderUpdatedProducer;
+
+    public OrderService(OrderRepository orderRepository, OrderCreatedProducer orderCreatedProducer,
+                        OrderDeliveredProducer orderUpdatedProducer) {
         this.orderRepository = orderRepository;
         this.orderCreatedProducer = orderCreatedProducer;
+        this.orderUpdatedProducer = orderUpdatedProducer;
     }
 
     public OrderResponse createOrder(OrderCreateRequest orderCreateRequest) {
@@ -37,6 +44,14 @@ public class OrderService {
     public OrderResponse updateOrderStatus(OrderStatusUpdateRequest request) {
        //TODO:: update order status and if status is delivered produce orderDeliveredEvent.
        //TODO:: Afterwards create payment by calling PaymentService after consuming orderDeliveredEvent
-        return null;
+        Order order = orderRepository.getById(request.getOrderId());
+        order.setOrderStatus(request.getOrderStatus());
+        orderRepository.save(order);
+
+        if(request.getOrderStatus() == OrderStatus.DELIVERED){
+            orderUpdatedProducer.produce(new OrderDeliveredMessage(order));
+        }
+
+        return new OrderResponse(order);
     }
 }
